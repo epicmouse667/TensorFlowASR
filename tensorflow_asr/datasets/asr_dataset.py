@@ -141,9 +141,6 @@ class ASRDataset(BaseDataset):
         # for i, line in enumerate(self.entries):
         #     self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
         # self.entries = np.array(self.entries)
-        # if self.shuffle:
-        #     np.random.shuffle(self.entries)  # Mix transcripts.tsv
-        # self.total_steps = len(self.entries)
         
 
         # read pickle files from data_path
@@ -151,8 +148,13 @@ class ASRDataset(BaseDataset):
             logger.info(f"Reading {file_path} ...")
             with tf.io.gfile.GFile(file_path, "rb") as f:
                 data = pickle.load(f)
-                self.entries.append(data)
-
+        for x in data:
+          self.entries.append(list(x.values()))       
+        for i, line in enumerate(self.entries):
+          self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
+        if self.shuffle:
+          np.random.shuffle(self.entries)  # Mix transcripts.tsv
+        self.total_steps = len(self.entries)
     # -------------------------------- LOAD AND PREPROCESS -------------------------------------
 
     def generator(self):
