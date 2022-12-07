@@ -149,7 +149,7 @@ class ASRDataset(BaseDataset):
         # read pickle files from data_path
         for file_path in self.data_paths:
             logger.info(f"Reading {file_path} ...")
-            with tf.io.gfile.GFile(file_path, "r") as f:
+            with tf.io.gfile.GFile(file_path, "rb") as f:
                 data = pickle.load(f)
                 self.entries.append(data)
 
