@@ -15,6 +15,8 @@
 import os
 import fire
 import math
+import sys 
+sys.path.append("/content/TensorFlowASR/")
 from tensorflow_asr.utils import env_util
 
 logger = env_util.setup_environment()
