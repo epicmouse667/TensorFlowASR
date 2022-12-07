@@ -24,14 +24,14 @@ speech_config:
   normalize_per_frame: False
 
 decoder_config:
-  vocabulary: ./vocabularies/librispeech/phoneme.subwords
+  vocabulary: /content/TensorFlowASR/vocabularies/librispeech/phoneme.characters
   target_vocab_size: 1000
   max_subword_length: 10
   blank_at_zero: True
   beam_width: 0
   norm_score: True
   corpus_files:
-    - /content/phoneme_corpus.tsv
+    - /content/phoneme_corpus.pickle
 
 model_config:
   name: conformer
@@ -75,7 +75,7 @@ learning_config:
           num_masks: 1
           mask_factor: 27
     data_paths:
-      - /content/phoneme_corpus.tsv
+      - /content/phoneme_corpus.pickle
     tfrecords_dir: null
     shuffle: True
     cache: True
@@ -115,13 +115,13 @@ learning_config:
     batch_size: 2
     num_epochs: 50
     checkpoint:
-      filepath: D:/Models/local/conformer/checkpoints/{epoch:02d}.h5
+      filepath: /content/conformer/checkpoints/{epoch:02d}.h5
       save_best_only: False
       save_weights_only: True
       save_freq: epoch
-    states_dir: D:/Models/local/conformer/states
+    states_dir: /content/conformer/states
     tensorboard:
-      log_dir: D:/Models/local/conformer/tensorboard
+      log_dir: /content/conformer/tensorboard
       histogram_freq: 1
       write_graph: True
       write_images: True
