@@ -152,8 +152,9 @@ class ASRDataset(BaseDataset):
           self.entries.append(list(x.values()))       
         for i, line in enumerate(self.entries):
           self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
+        self.entries = np.array(self.entries)
         if self.shuffle:
-          np.random.shuffle(self.entries)  # Mix transcripts.tsv
+            np.random.shuffle(self.entries)  # Mix transcripts.tsv
         self.total_steps = len(self.entries)
     # -------------------------------- LOAD AND PREPROCESS -------------------------------------
 
