@@ -35,7 +35,7 @@ def main(
     config: str = DEFAULT_YAML,
     tfrecords: bool = False,
     sentence_piece: bool = False,
-    subwords: bool = False,
+    subwords: bool = True,
     bs: int = None,
     spx: int = 1,
     metadata: str = None,
