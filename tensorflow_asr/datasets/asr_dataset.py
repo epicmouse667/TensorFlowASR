@@ -141,7 +141,9 @@ class ASRDataset(BaseDataset):
         for i, line in enumerate(self.entries):
             self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
         self.entries = np.array(self.entries)
-        
+        if self.shuffle:
+            np.random.shuffle(self.entries)  # Mix transcripts.tsv
+        self.total_steps = len(self.entries)
 
         # read pickle files from data_path
         for file_path in self.data_paths:
