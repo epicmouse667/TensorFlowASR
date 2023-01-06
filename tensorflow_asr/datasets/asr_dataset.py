@@ -130,17 +130,17 @@ class ASRDataset(BaseDataset):
         if hasattr(self, "entries") and len(self.entries) > 0:
             return
         self.entries = []
-        # for file_path in self.data_paths:
-        #     logger.info(f"Reading {file_path} ...")
-        #     with tf.io.gfile.GFile(file_path, "r") as f:
-        #         temp_lines = f.read().splitlines()
-        #         # Skip the header of tsv file
-        #         self.entries += temp_lines[1:]
-        # # The files is "\t" seperated
-        # self.entries = [line.split("\t", 2) for line in self.entries]
-        # for i, line in enumerate(self.entries):
-        #     self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
-        # self.entries = np.array(self.entries)
+        for file_path in self.data_paths:
+            logger.info(f"Reading {file_path} ...")
+            with tf.io.gfile.GFile(file_path, "r") as f:
+                temp_lines = f.read().splitlines()
+                # Skip the header of tsv file
+                self.entries += temp_lines[1:]
+        # The files is "\t" seperated
+        self.entries = [line.split("\t", 2) for line in self.entries]
+        for i, line in enumerate(self.entries):
+            self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
+        self.entries = np.array(self.entries)
         
 
         # read pickle files from data_path
