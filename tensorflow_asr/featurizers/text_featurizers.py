@@ -174,8 +174,8 @@ class CharFeaturizer(TextFeaturizer):
             line = self.preprocess_text(line)
             if line.startswith("#") or not line:
                 continue
-            self.tokens2indices[line[0]] = index
-            self.tokens.append(line[0])
+            self.tokens2indices[line] = index
+            self.tokens.append(line)
             index += 1
         if self.blank is None:
             self.blank = len(self.tokens)  # blank not at zero
