@@ -199,6 +199,7 @@ class CharFeaturizer(TextFeaturizer):
         """
         text = self.preprocess_text(text)
         text = list(text.strip())  # remove trailing space
+        text = [x for x in text if x!=" "]
         indices = [self.tokens2indices[token] for token in text]
         return tf.convert_to_tensor(indices, dtype=tf.int32)
 
