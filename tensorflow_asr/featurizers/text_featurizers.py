@@ -172,6 +172,7 @@ class CharFeaturizer(TextFeaturizer):
         index = 1 if self.blank == 0 else 0
         for line in lines:
             line = self.preprocess_text(line)
+            line = line.strip()
             if line.startswith("#") or not line:
                 continue
             self.tokens2indices[line] = index
@@ -198,7 +199,8 @@ class CharFeaturizer(TextFeaturizer):
             sequence of ints in tf.Tensor
         """
         text = self.preprocess_text(text)
-        text = list(text.strip())  # remove trailing space
+        text = text.strip()  # remove trailing space
+        text = text.split()
         indices = [self.tokens2indices[token] for token in text]
         return tf.convert_to_tensor(indices, dtype=tf.int32)
 
