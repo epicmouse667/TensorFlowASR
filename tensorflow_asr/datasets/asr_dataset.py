@@ -19,6 +19,7 @@ import numpy as np
 import tensorflow as tf
 import pickle
 import tqdm
+import pandas as pd
 
 from tensorflow_asr.augmentations.augmentation import Augmentation
 from tensorflow_asr.datasets.base_dataset import AUTOTUNE, BUFFER_SIZE, TFRECORD_SHARDS, BaseDataset
@@ -129,36 +130,38 @@ class ASRDataset(BaseDataset):
     def read_entries(self):
         if hasattr(self, "entries") and len(self.entries) > 0:
             return
-        self.entries = []
-        for file_path in self.data_paths:
-            logger.info(f"Reading {file_path} ...")
-            with tf.io.gfile.GFile(file_path, "r") as f:
-                temp_lines = f.read().splitlines()
-                # Skip the header of tsv file
-                self.entries += temp_lines[1:]
-        # The files is "\t" seperated
-        self.entries = [line.split("\t", 2) for line in self.entries]
-        for i, line in enumerate(self.entries):
-            self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
-        self.entries = np.array(self.entries)
-
-        # read pickle files from data_path
+        # self.entries = []
         # for file_path in self.data_paths:
         #     logger.info(f"Reading {file_path} ...")
-        #     with tf.io.gfile.GFile(file_path, "rb") as f:
-        #         data = pickle.load(f)
-        # for x in data:
-        #   self.entries.append(list(x.values()))       
+        #     with tf.io.gfile.GFile(file_path, "r") as f:
+        #         temp_lines = f.read().splitlines()
+        #         # Skip the header of tsv file
+        #         self.entries += temp_lines[1:]
+        # # The files is "\t" seperated
+        # self.entries = [line.split("\t", 2) for line in self.entries]
         # for i, line in enumerate(self.entries):
-        #   self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
+        #     self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
         # self.entries = np.array(self.entries)
-        if self.shuffle:
-            np.random.shuffle(self.entries)  # Mix transcripts.tsv
-        self.total_steps = len(self.entries)
+
+        # if self.shuffle:
+        #     np.random.shuffle(self.entries)  # Mix transcripts.tsv
+        # self.total_steps = len(self.entries)
+        dfs = []
+        for file_path in self.data_paths:
+            logger.info(f"Reading {file_path} ...")
+            df = pd.read_csv(file_path,sep = "\t")
+            for index, _ in df.iterrows():
+                df.at[index,"TRANSCRIPT"]=" ".join(str(x) for x in self.text_featurizer.extract(df.at[index,"TRANSCRIPT"]).numpy()) 
+            dfs.append(df)
+        self.entries = pd.concat(dfs,ignore_index = True)
+        self.total_steps = len(self.entries.index)
     # -------------------------------- LOAD AND PREPROCESS -------------------------------------
 
     def generator(self):
-        for path, _, indices in self.entries:
+        # for path, _, indices in self.entries:
+        for index, _ in df.iterrows()
+            path = df.at[index,"PATH"]
+            indices = df.at[index,"TRANSCRIPT"]
             audio = load_and_convert_to_wav(path).numpy()
             yield bytes(path, "utf-8"), audio, bytes(indices, "utf-8")
 
