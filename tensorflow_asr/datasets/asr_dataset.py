@@ -160,8 +160,8 @@ class ASRDataset(BaseDataset):
     def generator(self):
         # for path, _, indices in self.entries:
         for index, _ in df.iterrows()
-            path = df.at[index,"PATH"]
-            indices = df.at[index,"TRANSCRIPT"]
+            path = self.entries.at[index,"PATH"]
+            indices = self.entries.at[index,"TRANSCRIPT"]
             audio = load_and_convert_to_wav(path).numpy()
             yield bytes(path, "utf-8"), audio, bytes(indices, "utf-8")
 
