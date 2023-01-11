@@ -159,7 +159,7 @@ class ASRDataset(BaseDataset):
 
     def generator(self):
         # for path, _, indices in self.entries:
-        for index, _ in self.entries.iterrows()
+        for index, _ in self.entries.iterrows():
             path = self.entries.at[index,"PATH"]
             indices = self.entries.at[index,"TRANSCRIPT"]
             audio = load_and_convert_to_wav(path).numpy()
