@@ -78,7 +78,7 @@ learning_config:
       - /content/phoneme_corpus.pickle
     tfrecords_dir: null
     shuffle: True
-    cache: True
+    cache: False
     buffer_size: 100
     drop_remainder: True
     stage: train
