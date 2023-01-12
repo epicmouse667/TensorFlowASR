@@ -152,9 +152,10 @@ class ASRDataset(BaseDataset):
             df = pd.read_csv(file_path,sep = "\t")
             for index, _ in df.iterrows():
                 df.at[index,"TRANSCRIPT"]=" ".join(str(x) for x in self.text_featurizer.extract(df.at[index,"TRANSCRIPT"]).numpy()) 
-            dfs.append(df)
-        self.entries = pd.concat(dfs,ignore_index = True)
-        self.total_steps = len(self.entries.index)
+            # dfs.append(df)
+        # self.entries = pd.concat(dfs,ignore_index = True)
+            self.entries = dict(df)
+        self.total_steps = len(df.index)
     # -------------------------------- LOAD AND PREPROCESS -------------------------------------
 
     def generator(self):
