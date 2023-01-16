@@ -130,32 +130,22 @@ class ASRDataset(BaseDataset):
     def read_entries(self):
         if hasattr(self, "entries") and len(self.entries) > 0:
             return
-        # self.entries = []
-        # for file_path in self.data_paths:
-        #     logger.info(f"Reading {file_path} ...")
-        #     with tf.io.gfile.GFile(file_path, "r") as f:
-        #         temp_lines = f.read().splitlines()
-        #         # Skip the header of tsv file
-        #         self.entries += temp_lines[1:]
-        # # The files is "\t" seperated
-        # self.entries = [line.split("\t", 2) for line in self.entries]
-        # for i, line in enumerate(self.entries):
-        #     self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
-        # self.entries = np.array(self.entries)
-
-        # if self.shuffle:
-        #     np.random.shuffle(self.entries)  # Mix transcripts.tsv
-        # self.total_steps = len(self.entries)
-        dfs = []
+        self.entries = []
         for file_path in self.data_paths:
             logger.info(f"Reading {file_path} ...")
-            df = pd.read_csv(file_path,sep = "\t")
-            for index, _ in df.iterrows():
-                df.at[index,"TRANSCRIPT"]=" ".join(str(x) for x in self.text_featurizer.extract(df.at[index,"TRANSCRIPT"]).numpy()) 
-            # dfs.append(df)
-        # self.entries = pd.concat(dfs,ignore_index = True)
-            self.entries = dict(df)
-        self.total_steps = len(df.index)
+            with tf.io.gfile.GFile(file_path, "r") as f:
+                temp_lines = f.read().splitlines()
+                # Skip the header of tsv file
+                self.entries += temp_lines[1:]
+        # The files is "\t" seperated
+        self.entries = [line.split("\t", 2) for line in self.entries]
+        for i, line in enumerate(self.entries):
+            self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
+        self.entries = np.array(self.entries)
+
+        if self.shuffle:
+            np.random.shuffle(self.entries)  # Mix transcripts.tsv
+        self.total_steps = len(self.entries)
     # -------------------------------- LOAD AND PREPROCESS -------------------------------------
 
     def generator(self):
