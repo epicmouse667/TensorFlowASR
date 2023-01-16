@@ -31,7 +31,7 @@ decoder_config:
   beam_width: 0
   norm_score: True
   corpus_files:
-    - /content/phoneme_corpus.pickle
+    - /content/drive/MyDrive/conformer/phoneme_train_corpus.tsv
 
 model_config:
   name: conformer
@@ -75,7 +75,7 @@ learning_config:
           num_masks: 1
           mask_factor: 27
     data_paths:
-      - /content/phoneme_corpus.pickle
+      - /content/drive/MyDrive/conformer/phoneme_train_corpus.tsv
     tfrecords_dir: null
     shuffle: True
     cache: False
