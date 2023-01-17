@@ -382,8 +382,8 @@ class ASRSliceDataset(ASRDataset):
         def fn(path: bytes):
             return load_and_convert_to_wav(path.decode("utf-8")).numpy()
 
-        audio = tf.numpy_function(fn, inp=[record["PATH"]], Tout=tf.string)
-        return record["PATH"], audio, record["TRANSCRIPT"]
+        audio = tf.numpy_function(fn, inp=[record[0]], Tout=tf.string)
+        return record[0], audio, record[2]
 
     def create(self, batch_size: int):
         self.read_entries()
