@@ -246,6 +246,7 @@ class Transducer(BaseModel):
     def __init__(
         self,
         encoder: tf.keras.Model,
+        decoder: tf.keras.Model,
         vocabulary_size: int,
         embed_dim: int = 512,
         embed_dropout: float = 0,
@@ -296,6 +297,7 @@ class Transducer(BaseModel):
             trainable=joint_trainable,
             name=f"{name}_joint",
         )
+        self.decoder = decoder
         self.time_reduction_factor = 1
 
     def make(
@@ -362,8 +364,9 @@ class Transducer(BaseModel):
         **kwargs,
     ):
         enc = self.encoder(inputs["inputs"], training=training, **kwargs)
-        pred = self.predict_net([inputs["predictions"], inputs["predictions_length"]], training=training, **kwargs)
-        logits = self.joint_net([enc, pred], training=training, **kwargs)
+        # pred = self.predict_net([inputs["predictions"], inputs["predictions_length"]], training=training, **kwargs)
+        # logits = self.joint_net([enc, pred], training=training, **kwargs)
+        logits = self.decoder(enc, training=training, **kwargs)
         return data_util.create_logits(
             logits=logits,
             logits_length=math_util.get_reduced_length(inputs["inputs_length"], self.time_reduction_factor),
