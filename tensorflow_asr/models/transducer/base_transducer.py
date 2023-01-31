@@ -246,6 +246,7 @@ class Transducer(BaseModel):
     def __init__(
         self,
         encoder: tf.keras.Model,
+        decoder: tf.keras.Model,
         vocabulary_size: int,
         embed_dim: int = 512,
         embed_dropout: float = 0,
@@ -326,8 +327,8 @@ class Transducer(BaseModel):
     ):
         if self.encoder is not None:
             self.encoder.summary(line_length=line_length, **kwargs)
-        self.predict_net.summary(line_length=line_length, **kwargs)
-        self.joint_net.summary(line_length=line_length, **kwargs)
+        # self.predict_net.summary(line_length=line_length, **kwargs)
+        # self.joint_net.summary(line_length=line_length, **kwargs)
         super().summary(line_length=line_length, **kwargs)
 
     def add_featurizers(
