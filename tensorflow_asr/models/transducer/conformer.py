@@ -77,7 +77,7 @@ class Conformer(Transducer):
                 kernel_size=encoder_kernel_size,
                 bias_regularizer=bias_regularizer,
                 name=f"{name}_decoder",
-            )
+            ),
             vocabulary_size=vocabulary_size,
             embed_dim=prediction_embed_dim,
             embed_dropout=prediction_embed_dropout,
