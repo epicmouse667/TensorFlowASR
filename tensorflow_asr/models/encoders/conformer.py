@@ -409,7 +409,8 @@ class ConformerEncoder(tf.keras.Model):
         **kwargs,
     ):
         # input with shape [B, T, V1, V2]
-        outputs = self.conv_subsampling(inputs, training=training)
+        # outputs = self.conv_subsampling(inputs, training=training)
+        outputs = tf.squeeze(inputs, axis=3)
         outputs = self.linear(outputs, training=training)
         pe = self.pe(outputs)
         outputs = self.do(outputs, training=training)
@@ -426,3 +427,32 @@ class ConformerEncoder(tf.keras.Model):
         for cblock in self.conformer_blocks:
             conf.update(cblock.get_config())
         return conf
+
+
+class ConformerDecoder(tf.keras.Model):
+    def __init__(
+        self,
+        vocabulary_size:int,
+        filters:int,
+        kernel_regularizer,
+        bias_regularizer,
+        kernel_size:int=32,
+        name="conformer_decoder",
+        strides:tuple=(4,2),
+        **kwargs
+    ):
+        super(ConformerDecoder,self).__init__(name=name, **kwargs)
+        self.ffn = tf.keras.layers.Dense(
+          vocabulary_size,
+          name="decoder_linear",
+          kernel_regularizer=kernel_regularizer,
+          bias_regularizer=bias_regularizer,)
+    def call(
+        self,
+        inputs,
+        training=False,
+        **kwargs,
+      ):
+        outputs = self.ffn(inputs,training=training,**kwargs)
+        outputs = tf.nn.softmax(outputs)
+        return outputs

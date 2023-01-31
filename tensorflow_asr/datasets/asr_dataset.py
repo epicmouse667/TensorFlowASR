@@ -190,6 +190,9 @@ class ASRDataset(BaseDataset):
             label = tf.strings.to_number(tf.strings.split(indices), out_type=tf.int32)
             label_length = tf.cast(tf.shape(label)[0], tf.int32)
 
+            if label_length<input_length:
+                label = tf.concat([label,tf.constant([70])],axis=0)
+
             prediction = self.text_featurizer.prepand_blank(label)
             prediction_length = tf.cast(tf.shape(prediction)[0], tf.int32)
 

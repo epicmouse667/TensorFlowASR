@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from tensorflow_asr.models.encoders.conformer import L2, ConformerEncoder
+from tensorflow_asr.models.encoders.conformer import L2, ConformerEncoder,ConformerDecoder
 from tensorflow_asr.models.transducer.base_transducer import Transducer
 
 
@@ -70,6 +70,14 @@ class Conformer(Transducer):
                 trainable=encoder_trainable,
                 name=f"{name}_encoder",
             ),
+            decoder=ConformerDecoder(
+                vocabulary_size=vocabulary_size,
+                filters=1,
+                kernel_regularizer=kernel_regularizer,
+                kernel_size=encoder_kernel_size,
+                bias_regularizer=bias_regularizer,
+                name=f"{name}_decoder",
+            )
             vocabulary_size=vocabulary_size,
             embed_dim=prediction_embed_dim,
             embed_dropout=prediction_embed_dropout,

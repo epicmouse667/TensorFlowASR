@@ -296,6 +296,7 @@ class Transducer(BaseModel):
             trainable=joint_trainable,
             name=f"{name}_joint",
         )
+        self.decoder = decoder
         self.time_reduction_factor = 1
 
     def make(
@@ -353,7 +354,8 @@ class Transducer(BaseModel):
         **kwargs,
     ):
         # loss = RnntLoss(blank=blank, global_batch_size=global_batch_size)
-        loss=tf.keras.losses.CategoricalCrossentropy()
+        self.global_batch_size = global_batch_size
+        loss=tf.keras.losses.CategoricalCrossentropy( reduction=tf.keras.losses.Reduction.NONE)
         super().compile(loss=loss, optimizer=optimizer, run_eagerly=run_eagerly, **kwargs)
 
     def call(
@@ -363,8 +365,9 @@ class Transducer(BaseModel):
         **kwargs,
     ):
         enc = self.encoder(inputs["inputs"], training=training, **kwargs)
-        pred = self.predict_net([inputs["predictions"], inputs["predictions_length"]], training=training, **kwargs)
-        logits = self.joint_net([enc, pred], training=training, **kwargs)
+        # pred = self.predict_net([inputs["predictions"], inputs["predictions_length"]], training=training, **kwargs)
+        # logits = self.joint_net([enc, pred], training=training, **kwargs)
+        logits = self.decoder(enc, training=training, **kwargs)
         return data_util.create_logits(
             logits=logits,
             logits_length=math_util.get_reduced_length(inputs["inputs_length"], self.time_reduction_factor),
