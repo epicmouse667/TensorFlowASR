@@ -31,7 +31,7 @@ decoder_config:
   beam_width: 0
   norm_score: True
   corpus_files:
-    - /content/drive/MyDrive/conformer/phoneme_train_corpus.tsv
+    - /content/drive/MyDrive/conformer/phoneme_train_corpus_v2.tsv
 
 model_config:
   name: conformer
@@ -75,7 +75,7 @@ learning_config:
           num_masks: 1
           mask_factor: 27
     data_paths:
-      - /content/drive/MyDrive/conformer/phoneme_train_corpus.tsv
+      - /content/drive/MyDrive/conformer/phoneme_train_corpus_v2.tsv
     tfrecords_dir: null
     shuffle: True
     cache: False
@@ -86,7 +86,7 @@ learning_config:
   eval_dataset_config:
     use_tf: True
     data_paths:
-      - H:/MLDL/Datasets/ASR/Raw/LibriSpeech/dev-clean/transcripts.tsv
+      - /content/drive/MyDrive/conformer/phoneme_train_corpus_v2.tsv
     tfrecords_dir: null
     shuffle: False
     cache: False
@@ -112,16 +112,16 @@ learning_config:
     epsilon: 1e-9
 
   running_config:
-    batch_size: 2
+    batch_size: 16
     num_epochs: 50
     checkpoint:
-      filepath: /content/conformer/checkpoints/{epoch:02d}.h5
+      filepath: /content/drive/MyDrive/conformer/checkpoints/{epoch:02d}.h5
       save_best_only: False
       save_weights_only: True
       save_freq: epoch
-    states_dir: /content/conformer/states
+    states_dir: /content/drive/MyDrive/conformer/states
     tensorboard:
-      log_dir: /content/conformer/tensorboard
+      log_dir: /content/drive/MyDrive/conformer/tensorboard
       histogram_freq: 1
       write_graph: True
       write_images: True
