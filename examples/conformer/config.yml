@@ -42,7 +42,7 @@ model_config:
     strides: 2
   encoder_positional_encoding: sinusoid
   encoder_dmodel: 144
-  encoder_num_blocks: 16
+  encoder_num_blocks: 8
   encoder_head_size: 36
   encoder_num_heads: 4
   encoder_mha_type: relmha
