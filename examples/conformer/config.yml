@@ -86,7 +86,7 @@ learning_config:
   eval_dataset_config:
     use_tf: True
     data_paths:
-      - /content/drive/MyDrive/conformer/phoneme_train_corpus_v2.tsv
+      - /content/drive/MyDrive/conformer/phoneme_dev_corpus.tsv
     tfrecords_dir: null
     shuffle: False
     cache: False
