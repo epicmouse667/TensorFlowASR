@@ -356,7 +356,7 @@ class Transducer(BaseModel):
     ):
         # loss = RnntLoss(blank=blank, global_batch_size=global_batch_size)
         self.global_batch_size = global_batch_size
-        loss=tf.keras.losses.CategoricalCrossentropy( reduction=tf.keras.losses.Reduction.NONE)
+        loss=tf.keras.losses.CategoricalCrossentropy()
         super().compile(loss=loss, optimizer=optimizer, run_eagerly=run_eagerly, **kwargs)
 
     def call(
