@@ -136,7 +136,7 @@ class BaseModel(tf.keras.Model):
         logits = y_pred["logits"]
         labels = tf.one_hot(labels, depth=self.predict_net.embed.vocab_size)
         # loss = tf.reduce_sum(self.loss(labels, logits))* (1. / self.global_batch_size)
-        loss = self.loss(lables,logits)
+        loss = self.loss(labels,logits)
         self._tfasr_metrics["loss"].update_state(loss)
         return {m.name: m.result() for m in self.metrics}
 
