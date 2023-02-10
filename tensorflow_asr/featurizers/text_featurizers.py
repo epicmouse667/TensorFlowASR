@@ -219,7 +219,7 @@ class CharFeaturizer(TextFeaturizer):
         indices = self.normalize_indices(indices)
         tokens = tf.gather_nd(self.tokens, tf.expand_dims(indices, axis=-1))
         with tf.device("/CPU:0"):  # string data is not supported on GPU
-            tokens = tf.strings.reduce_join(tokens, axis=-1)
+            tokens = tf.strings.reduce_join(tokens,separator=" " ,axis=-1)
         return tokens
 
     @tf.function(input_signature=[tf.TensorSpec([None], dtype=tf.int32)])
