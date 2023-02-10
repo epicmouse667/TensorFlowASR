@@ -100,4 +100,5 @@ class Conformer(Transducer):
             **kwargs,
         )
         self.dmodel = encoder_dmodel
-        self.time_reduction_factor = self.encoder.conv_subsampling.time_reduction_factor
+        self.time_reduction_factor = self.encoder.conv_subsampling.time_reduction_factor if self.encoder.conv_subsampling or 1
+        

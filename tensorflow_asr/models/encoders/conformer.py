@@ -353,12 +353,12 @@ class ConformerEncoder(tf.keras.Model):
         else:
             raise ValueError("subsampling must be either  'conv2d' or 'vgg'")
 
-        self.conv_subsampling = subsampling_class(
-            **subsampling,
-            name=f"{name}_subsampling",
-            kernel_regularizer=kernel_regularizer,
-            bias_regularizer=bias_regularizer,
-        )
+        # self.conv_subsampling = subsampling_class(
+        #     **subsampling,
+        #     name=f"{name}_subsampling",
+        #     kernel_regularizer=kernel_regularizer,
+        #     bias_regularizer=bias_regularizer,
+        # )
 
         if positional_encoding == "sinusoid":
             self.pe = PositionalEncoding(name=f"{name}_pe")
