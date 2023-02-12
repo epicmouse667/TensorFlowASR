@@ -14,6 +14,7 @@
 
 from tensorflow_asr.models.encoders.conformer import L2, ConformerEncoder,ConformerDecoder
 from tensorflow_asr.models.transducer.base_transducer import Transducer
+import tensorflow as tf
 
 
 class Conformer(Transducer):
