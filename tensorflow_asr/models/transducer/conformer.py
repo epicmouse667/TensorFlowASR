@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import collections
+import tensorflow as tf
 
 from tensorflow_asr.models.encoders.conformer import L2, ConformerEncoder,ConformerDecoder
 from tensorflow_asr.models.transducer.base_transducer import Transducer
-import tensorflow as tf
+from tensorflow_asr.utils import data_util, layer_util, math_util, shape_util
 
+
+Hypothesis = collections.namedtuple("Hypothesis", ("prediction"))
 
 class Conformer(Transducer):
     def __init__(
@@ -109,7 +113,9 @@ class Conformer(Transducer):
             encoded: tf.Tensor,
             tflite: bool = False,
         ):
+        encoded = tf.reshape(encoded, [1, 1, -1]) 
         decoded = self.decoder(encoded)
+        decoded = tf.reshape(decoded, shape=[-1])
         return decoded
 
     def _perform_greedy(
@@ -123,10 +129,20 @@ class Conformer(Transducer):
             with tf.name_scope(f"{self.name}_greedy"):
                 time = tf.constant(0, dtype=tf.int32)
                 total = encoded_length
-                def condition(_time):
+
+                hypothesis = Hypothesis(
+                    prediction=tf.TensorArray(
+                    dtype=tf.int32,
+                    size=total,
+                    dynamic_size=False,
+                    clear_after_read=False,
+                    element_shape=tf.TensorShape([]),
+                    ),
+                )
+                def condition(_time,_):
                     return tf.less(_time, total)
 
-                def body(_time):
+                def body(_time,_hypothesis):
                     ytu = self.decoder_inference(
                         # avoid using [index] in tflite
                         encoded=tf.gather_nd(encoded, tf.reshape(_time, shape=[1])),
@@ -140,8 +156,9 @@ class Conformer(Transducer):
                     # _index, _states = tf.cond(tf.equal(_predict, blank), equal_blank_fn, non_equal_blank_fn)
 
                     _prediction = _hypothesis.prediction.write(_time, _predict)
+                    _hypothesis = Hypothesis(prediction=_prediction)
 
-                    return _time + 1
+                    return _time + 1,_hypothesis
 
                 time, hypothesis = tf.while_loop(
                     condition,
