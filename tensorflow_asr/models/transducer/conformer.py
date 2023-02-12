@@ -116,8 +116,6 @@ class Conformer(Transducer):
             self,
             encoded: tf.Tensor,
             encoded_length: tf.Tensor,
-            predicted: tf.Tensor,
-            states: tf.Tensor,
             parallel_iterations: int = 10,
             swap_memory: bool = False,
             tflite: bool = False,
