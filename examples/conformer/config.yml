@@ -86,7 +86,7 @@ learning_config:
   eval_dataset_config:
     use_tf: True
     data_paths:
-      - /content/drive/MyDrive/conformer/phoneme_dev_corpus.tsv
+      - /content/drive/MyDrive/conformer/phoneme_dev_corpus_v2.tsv
     tfrecords_dir: null
     shuffle: False
     cache: False
@@ -97,7 +97,7 @@ learning_config:
   test_dataset_config:
     use_tf: True
     data_paths:
-      - H:/MLDL/Datasets/ASR/Raw/LibriSpeech/test-clean/transcripts.tsv
+      - /content/drive/MyDrive/conformer/phoneme_dev_corpus_v2.tsv
     tfrecords_dir: null
     shuffle: False
     cache: False
