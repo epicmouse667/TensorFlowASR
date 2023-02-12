@@ -104,98 +104,98 @@ class Conformer(Transducer):
         # self.time_reduction_factor = self.encoder.conv_subsampling.time_reduction_factor 
         self.time_reduction_factor = 1
         
-def decoder_inference(
-        self,
-        encoded: tf.Tensor,
-        tflite: bool = False,
-    ):
-    decoded = self.decoder(encoded)
-    return decoded
+    def decoder_inference(
+            self,
+            encoded: tf.Tensor,
+            tflite: bool = False,
+        ):
+        decoded = self.decoder(encoded)
+        return decoded
 
-def _perform_greedy(
-        self,
-        encoded: tf.Tensor,
-        encoded_length: tf.Tensor,
-        predicted: tf.Tensor,
-        states: tf.Tensor,
-        parallel_iterations: int = 10,
-        swap_memory: bool = False,
-        tflite: bool = False,
-    ):
-        with tf.name_scope(f"{self.name}_greedy"):
-            time = tf.constant(0, dtype=tf.int32)
-            total = encoded_length
-            def condition(_time):
-                return tf.less(_time, total)
+    def _perform_greedy(
+            self,
+            encoded: tf.Tensor,
+            encoded_length: tf.Tensor,
+            predicted: tf.Tensor,
+            states: tf.Tensor,
+            parallel_iterations: int = 10,
+            swap_memory: bool = False,
+            tflite: bool = False,
+        ):
+            with tf.name_scope(f"{self.name}_greedy"):
+                time = tf.constant(0, dtype=tf.int32)
+                total = encoded_length
+                def condition(_time):
+                    return tf.less(_time, total)
 
-            def body(_time):
-                ytu = self.decoder_inference(
-                    # avoid using [index] in tflite
-                    encoded=tf.gather_nd(encoded, tf.reshape(_time, shape=[1])),
-                    tflite=tflite,
-                )
-                _predict = tf.argmax(ytu, axis=-1, output_type=tf.int32)  # => argmax []
+                def body(_time):
+                    ytu = self.decoder_inference(
+                        # avoid using [index] in tflite
+                        encoded=tf.gather_nd(encoded, tf.reshape(_time, shape=[1])),
+                        tflite=tflite,
+                    )
+                    _predict = tf.argmax(ytu, axis=-1, output_type=tf.int32)  # => argmax []
 
-                # something is wrong with tflite that drop support for tf.cond
-                # def equal_blank_fn(): return _hypothesis.index, _hypothesis.states
-                # def non_equal_blank_fn(): return _predict, _states  # update if the new prediction is a non-blank
-                # _index, _states = tf.cond(tf.equal(_predict, blank), equal_blank_fn, non_equal_blank_fn)
+                    # something is wrong with tflite that drop support for tf.cond
+                    # def equal_blank_fn(): return _hypothesis.index, _hypothesis.states
+                    # def non_equal_blank_fn(): return _predict, _states  # update if the new prediction is a non-blank
+                    # _index, _states = tf.cond(tf.equal(_predict, blank), equal_blank_fn, non_equal_blank_fn)
 
-                _prediction = _hypothesis.prediction.write(_time, _predict)
+                    _prediction = _hypothesis.prediction.write(_time, _predict)
 
-                return _time + 1
+                    return _time + 1
 
-            time, hypothesis = tf.while_loop(
-                condition,
-                body,
-                loop_vars=[time, hypothesis],
-                parallel_iterations=parallel_iterations,
-                swap_memory=swap_memory,
-            )
-
-            return Hypothesis(
-                prediction=hypothesis.prediction.stack(),
-            )
-
-def _perform_greedy_batch(
-        self,
-        encoded: tf.Tensor,
-        encoded_length: tf.Tensor,
-        parallel_iterations: int = 10,
-        swap_memory: bool = False,
-    ):
-        with tf.name_scope(f"{self.name}_perform_greedy_batch"):
-            total_batch = tf.shape(encoded)[0]
-            batch = tf.constant(0, dtype=tf.int32)
-
-            decoded = tf.TensorArray(
-                dtype=tf.int32,
-                size=total_batch,
-                dynamic_size=False,
-                clear_after_read=False,
-                element_shape=tf.TensorShape([None]),
-            )
-
-            def condition(batch, _):
-                return tf.less(batch, total_batch)
-
-            def body(batch, decoded):
-                hypothesis = self._perform_greedy(
-                    encoded=encoded[batch],
-                    encoded_length=encoded_length[batch],
+                time, hypothesis = tf.while_loop(
+                    condition,
+                    body,
+                    loop_vars=[time, hypothesis],
                     parallel_iterations=parallel_iterations,
                     swap_memory=swap_memory,
                 )
-                decoded = decoded.write(batch, hypothesis.prediction)
-                return batch + 1, decoded
 
-            batch, decoded = tf.while_loop(
-                condition,
-                body,
-                loop_vars=[batch, decoded],
-                parallel_iterations=parallel_iterations,
-                swap_memory=True,
-            )
+                return Hypothesis(
+                    prediction=hypothesis.prediction.stack(),
+                )
 
-            decoded = math_util.pad_prediction_tfarray(decoded, blank=self.text_featurizer.blank)
-            return self.text_featurizer.iextract(decoded.stack())
+    def _perform_greedy_batch(
+            self,
+            encoded: tf.Tensor,
+            encoded_length: tf.Tensor,
+            parallel_iterations: int = 10,
+            swap_memory: bool = False,
+        ):
+            with tf.name_scope(f"{self.name}_perform_greedy_batch"):
+                total_batch = tf.shape(encoded)[0]
+                batch = tf.constant(0, dtype=tf.int32)
+
+                decoded = tf.TensorArray(
+                    dtype=tf.int32,
+                    size=total_batch,
+                    dynamic_size=False,
+                    clear_after_read=False,
+                    element_shape=tf.TensorShape([None]),
+                )
+
+                def condition(batch, _):
+                    return tf.less(batch, total_batch)
+
+                def body(batch, decoded):
+                    hypothesis = self._perform_greedy(
+                        encoded=encoded[batch],
+                        encoded_length=encoded_length[batch],
+                        parallel_iterations=parallel_iterations,
+                        swap_memory=swap_memory,
+                    )
+                    decoded = decoded.write(batch, hypothesis.prediction)
+                    return batch + 1, decoded
+
+                batch, decoded = tf.while_loop(
+                    condition,
+                    body,
+                    loop_vars=[batch, decoded],
+                    parallel_iterations=parallel_iterations,
+                    swap_memory=True,
+                )
+
+                decoded = math_util.pad_prediction_tfarray(decoded, blank=self.text_featurizer.blank)
+                return self.text_featurizer.iextract(decoded.stack())
