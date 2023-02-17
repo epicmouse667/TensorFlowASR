@@ -22,6 +22,8 @@ import numpy as np
 import soundfile as sf
 import tensorflow as tf
 import tensorflow_io as tfio
+from resemblyzer import VoiceEncoder, preprocess_wav
+from glob import glob
 
 from tensorflow_asr.utils import env_util, math_util
 from tensorflow_asr.featurizers.methods import gammatone
@@ -40,6 +42,27 @@ def load_and_convert_to_wav(
     wave, rate = librosa.load(os.path.expanduser(path), sr=None, mono=True)
     return tf.audio.encode_wav(tf.expand_dims(wave, axis=-1), sample_rate=rate)
 
+#attach speaker embedding to audio tensor
+#e.g. "/content/LibriSpeech4schunks_dev/1272/128104/1272-128104-0000/chunk000.flac"
+# then the parent dir will be "/content/LibriSpeech4schunks_dev/1272/"
+# and we will choose a representative audio clip to compute speaker embedding, which will be the first
+# file in this dir in lexical order.
+def speaker_embedding(
+    path:bytes,
+    features:tf.Tensor,  # shape is [T,dmodel,1]
+)-> tf.Tensor:
+    encoder = VoiceEncoder()
+    path = path.decode("utf-8").split("/")[:4]  
+    parent_dir = "/".join([dir for dir in dirs])
+    filenames = glob(f"{parent_dir}/**/*.flac", recursive=True)
+    filenames = filenames.sort()# find the first file in lexical order by sorting all the filenames in this dir
+    fpath = filenames[0]
+    wav = preprocess_wav(fpath)
+    embed = encoder.embed_utterance(wav)
+    embed = tf.reshape(embed,[1,-1,1])
+    embed = tf.tile(a,tf.constant([features.shape[0],1,1]))
+    features = tf.concat(1,[features,embed])
+    return features
 
 def read_raw_audio(
     audio: Union[str, bytes, np.ndarray],
