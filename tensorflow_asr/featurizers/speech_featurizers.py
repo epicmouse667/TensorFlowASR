@@ -52,16 +52,16 @@ def speaker_embedding(
     features:tf.Tensor,  # shape is [T,dmodel,1]
 )-> tf.Tensor:
     encoder = VoiceEncoder()
-    path = path.decode("utf-8").split("/")[:4]  
+    dirs = path.decode("utf-8").split("/")[:4]  
     parent_dir = "/".join([dir for dir in dirs])
     filenames = glob(f"{parent_dir}/**/*.flac", recursive=True)
-    filenames = filenames.sort()# find the first file in lexical order by sorting all the filenames in this dir
+    filenames.sort()# find the first file in lexical order by sorting all the filenames in this dir
     fpath = filenames[0]
     wav = preprocess_wav(fpath)
     embed = encoder.embed_utterance(wav)
     embed = tf.reshape(embed,[1,-1,1])
-    embed = tf.tile(a,tf.constant([features.shape[0],1,1]))
-    features = tf.concat(1,[features,embed])
+    embed = tf.tile(embed,tf.constant([features.shape[0],1,1]))
+    features = tf.concat([features,embed],axis=1)
     return features
 
 def read_raw_audio(
