@@ -47,25 +47,6 @@ def load_and_convert_to_wav(
 # then the parent dir will be "/content/LibriSpeech4schunks_dev/1272/"
 # and we will choose a representative audio clip to compute speaker embedding, which will be the first
 # file in this dir in lexical order.
-def speaker_embedding(
-    path:bytes,
-    features:tf.Tensor,  # shape is [T,dmodel,1]
-)-> tf.Tensor:
-    encoder = VoiceEncoder(verbose=False)
-    dirs = path.decode("utf-8").split("/")[:4]  
-    parent_dir = "/".join([dir for dir in dirs])
-    filenames = glob(f"{parent_dir}/**/*.flac", recursive=True)
-    filenames.sort()# find the first file in lexical order by sorting all the filenames in this dir
-    fpath = filenames[0]
-    wav = preprocess_wav(fpath)
-    embed = encoder.embed_utterance(wav)
-    embed = tf.reshape(embed,[1,-1,1])
-    embed = tf.tile(embed,tf.constant([features.shape[0],1,1]))
-    features = tf.concat([features,embed],axis=1)
-    return features
-
-def tf_speaker_embedding(path:tf.Tensor,features:tf.Tensor):
-    return tf.numpy_function(speaker_embedding,inp=[path,features],Tout=tf.float32)
 
 def read_raw_audio(
     audio: Union[str, bytes, np.ndarray],
@@ -285,8 +266,10 @@ class SpeechFeaturizer(metaclass=abc.ABCMeta):
         self.feature_type = speech_config.get("feature_type", "log_mel_spectrogram")
         self.preemphasis = speech_config.get("preemphasis", None)
         self.top_db = speech_config.get("top_db", 80.0)
+        # speaker_embedding
         self.speaker_embedded = speech_config.get("speaker_embedded",False)
         self.speaker_embedding_length = speech_config.get("speaker_embedding_length",256)
+        self.speaker_embedding_dir = speech_config.get("speaker_embedding_dir","/content/speaker_embedding")
         # Normalization
         self.normalize_signal = speech_config.get("normalize_signal", True)
         self.normalize_feature = speech_config.get("normalize_feature", True)
@@ -660,3 +643,17 @@ class TFSpeechFeaturizer(SpeechFeaturizer):
         gtone_spectrogram = tf.tensordot(S, gtone, 1)
 
         return self.power_to_db(gtone_spectrogram)
+    
+    def speaker_embedding(
+        path:bytes,
+        features:tf.Tensor,  # shape is [T,dmodel,1]
+    )-> tf.Tensor:
+        speaker_id = path.decode("utf-8").split("/")[3]
+        embed = np.load(f"{self.speaker_embedding_dir}/{speaker_id}.npy")
+        embed = tf.reshape(embed,[1,-1,1])
+        embed = tf.tile(embed,tf.constant([features.shape[0],1,1]))
+        features = tf.concat([features,embed],axis=1)
+        return features
+
+    def tf_speaker_embedding(path:tf.Tensor,features:tf.Tensor):
+        return tf.numpy_function(speaker_embedding,inp=[path,features],Tout=tf.float32)
