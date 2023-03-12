@@ -70,14 +70,6 @@ class Conformer(Transducer):
                 trainable=encoder_trainable,
                 name=f"{name}_encoder",
             ),
-            decoder=ConformerDecoder(
-                vocabulary_size=vocabulary_size,
-                filters=1,
-                kernel_regularizer=kernel_regularizer,
-                bias_regularizer=bias_regularizer,
-                kernel_size=encoder_kernel_size,
-                name=f"{name}_decoder",
-            )
             vocabulary_size=vocabulary_size,
             embed_dim=prediction_embed_dim,
             embed_dropout=prediction_embed_dropout,
