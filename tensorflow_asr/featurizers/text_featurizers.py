@@ -198,8 +198,8 @@ class CharFeaturizer(TextFeaturizer):
             sequence of ints in tf.Tensor
         """
         text = self.preprocess_text(text)
-        text = text.strip() # remove trailing space
-        text = text.split()
+        text = list(text.strip())  # remove trailing space
+        text = [x for x in text if x!=" "]
         indices = [self.tokens2indices[token] for token in text]
         return tf.convert_to_tensor(indices, dtype=tf.int32)
 
