@@ -246,6 +246,7 @@ class Transducer(BaseModel):
     def __init__(
         self,
         encoder: tf.keras.Model,
+        decoder: tf.keras.Model,
         vocabulary_size: int,
         embed_dim: int = 512,
         embed_dropout: float = 0,
@@ -296,6 +297,7 @@ class Transducer(BaseModel):
             trainable=joint_trainable,
             name=f"{name}_joint",
         )
+        self.decoder = decoder
         self.time_reduction_factor = 1
 
     def make(
@@ -325,8 +327,8 @@ class Transducer(BaseModel):
     ):
         if self.encoder is not None:
             self.encoder.summary(line_length=line_length, **kwargs)
-        self.predict_net.summary(line_length=line_length, **kwargs)
-        self.joint_net.summary(line_length=line_length, **kwargs)
+        # self.predict_net.summary(line_length=line_length, **kwargs)
+        # self.joint_net.summary(line_length=line_length, **kwargs)
         super().summary(line_length=line_length, **kwargs)
 
     def add_featurizers(
@@ -352,7 +354,9 @@ class Transducer(BaseModel):
         run_eagerly=None,
         **kwargs,
     ):
-        loss = RnntLoss(blank=blank, global_batch_size=global_batch_size)
+        # loss = RnntLoss(blank=blank, global_batch_size=global_batch_size)
+        self.global_batch_size = global_batch_size
+        loss=tf.keras.losses.CategoricalCrossentropy()
         super().compile(loss=loss, optimizer=optimizer, run_eagerly=run_eagerly, **kwargs)
 
     def call(
@@ -362,8 +366,9 @@ class Transducer(BaseModel):
         **kwargs,
     ):
         enc = self.encoder(inputs["inputs"], training=training, **kwargs)
-        pred = self.predict_net([inputs["predictions"], inputs["predictions_length"]], training=training, **kwargs)
-        logits = self.joint_net([enc, pred], training=training, **kwargs)
+        # pred = self.predict_net([inputs["predictions"], inputs["predictions_length"]], training=training, **kwargs)
+        # logits = self.joint_net([enc, pred], training=training, **kwargs)
+        logits = self.decoder(enc, training=training, **kwargs)
         return data_util.create_logits(
             logits=logits,
             logits_length=math_util.get_reduced_length(inputs["inputs_length"], self.time_reduction_factor),

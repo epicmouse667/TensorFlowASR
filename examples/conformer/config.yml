@@ -22,16 +22,19 @@ speech_config:
   normalize_signal: True
   normalize_feature: True
   normalize_per_frame: False
+  speaker_embedded: True
+  speaker_embedding_length : 256
+  speaker_embedding_dir : /content/speaker_embedding
 
 decoder_config:
-  vocabulary: ./vocabularies/librispeech/librispeech_train_4_1030.subwords
+  vocabulary: /content/TensorFlowASR/vocabularies/librispeech/phoneme.characters
   target_vocab_size: 1000
   max_subword_length: 10
   blank_at_zero: True
   beam_width: 0
   norm_score: True
   corpus_files:
-    - H:/MLDL/Datasets/ASR/Raw/LibriSpeech/train-clean-100/transcripts.tsv
+    - /content/drive/MyDrive/conformer/phoneme_train_corpus_v2.tsv
 
 model_config:
   name: conformer
@@ -42,7 +45,7 @@ model_config:
     strides: 2
   encoder_positional_encoding: sinusoid
   encoder_dmodel: 144
-  encoder_num_blocks: 16
+  encoder_num_blocks: 8
   encoder_head_size: 36
   encoder_num_heads: 4
   encoder_mha_type: relmha
@@ -75,10 +78,10 @@ learning_config:
           num_masks: 1
           mask_factor: 27
     data_paths:
-      - H:/MLDL/Datasets/ASR/Raw/LibriSpeech/train-clean-100/transcripts.tsv
+      - /content/drive/MyDrive/conformer/phoneme_train_corpus_v2.tsv
     tfrecords_dir: null
     shuffle: True
-    cache: True
+    cache: False
     buffer_size: 100
     drop_remainder: True
     stage: train
@@ -86,10 +89,10 @@ learning_config:
   eval_dataset_config:
     use_tf: True
     data_paths:
-      - H:/MLDL/Datasets/ASR/Raw/LibriSpeech/dev-clean/transcripts.tsv
+      - /content/drive/MyDrive/conformer/phoneme_dev_corpus_v2.tsv
     tfrecords_dir: null
     shuffle: False
-    cache: True
+    cache: False
     buffer_size: 100
     drop_remainder: True
     stage: eval
@@ -97,10 +100,10 @@ learning_config:
   test_dataset_config:
     use_tf: True
     data_paths:
-      - H:/MLDL/Datasets/ASR/Raw/LibriSpeech/test-clean/transcripts.tsv
+      - /content/drive/MyDrive/conformer/phoneme_dev_corpus_v2.tsv
     tfrecords_dir: null
     shuffle: False
-    cache: True
+    cache: False
     buffer_size: 100
     drop_remainder: True
     stage: test
@@ -112,16 +115,16 @@ learning_config:
     epsilon: 1e-9
 
   running_config:
-    batch_size: 2
+    batch_size: 16
     num_epochs: 50
     checkpoint:
-      filepath: D:/Models/local/conformer/checkpoints/{epoch:02d}.h5
+      filepath: /content/drive/MyDrive/conformer/checkpoints/{epoch:02d}.h5
       save_best_only: False
       save_weights_only: True
       save_freq: epoch
-    states_dir: D:/Models/local/conformer/states
+    states_dir: /content/drive/MyDrive/conformer/states
     tensorboard:
-      log_dir: D:/Models/local/conformer/tensorboard
+      log_dir: /content/drive/MyDrive/conformer/tensorboard
       histogram_freq: 1
       write_graph: True
       write_images: True

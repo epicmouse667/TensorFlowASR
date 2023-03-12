@@ -22,6 +22,8 @@ import numpy as np
 import soundfile as sf
 import tensorflow as tf
 import tensorflow_io as tfio
+from resemblyzer import VoiceEncoder, preprocess_wav
+from glob import glob
 
 from tensorflow_asr.utils import env_util, math_util
 from tensorflow_asr.featurizers.methods import gammatone
@@ -40,6 +42,11 @@ def load_and_convert_to_wav(
     wave, rate = librosa.load(os.path.expanduser(path), sr=None, mono=True)
     return tf.audio.encode_wav(tf.expand_dims(wave, axis=-1), sample_rate=rate)
 
+#attach speaker embedding to audio tensor
+#e.g. "/content/LibriSpeech4schunks_dev/1272/128104/1272-128104-0000/chunk000.flac"
+# then the parent dir will be "/content/LibriSpeech4schunks_dev/1272/"
+# and we will choose a representative audio clip to compute speaker embedding, which will be the first
+# file in this dir in lexical order.
 
 def read_raw_audio(
     audio: Union[str, bytes, np.ndarray],
@@ -259,6 +266,10 @@ class SpeechFeaturizer(metaclass=abc.ABCMeta):
         self.feature_type = speech_config.get("feature_type", "log_mel_spectrogram")
         self.preemphasis = speech_config.get("preemphasis", None)
         self.top_db = speech_config.get("top_db", 80.0)
+        # speaker_embedding
+        self.speaker_embedded = speech_config.get("speaker_embedded",False)
+        self.speaker_embedding_length = speech_config.get("speaker_embedding_length",256)
+        self.speaker_embedding_dir = speech_config.get("speaker_embedding_dir","/content/speaker_embedding")
         # Normalization
         self.normalize_signal = speech_config.get("normalize_signal", True)
         self.normalize_feature = speech_config.get("normalize_feature", True)
@@ -266,6 +277,7 @@ class SpeechFeaturizer(metaclass=abc.ABCMeta):
         self.center = speech_config.get("center", True)
         # Length
         self.max_length = 0
+        
 
     @property
     def nfft(self) -> int:
@@ -507,6 +519,8 @@ class TFSpeechFeaturizer(SpeechFeaturizer):
     @property
     def shape(self) -> list:
         length = self.max_length if self.max_length > 0 else None
+        if self.speaker_embedded:
+            return [length, self.num_feature_bins+self.speaker_embedding_length, 1]
         return [length, self.num_feature_bins, 1]
 
     def stft(
@@ -629,3 +643,17 @@ class TFSpeechFeaturizer(SpeechFeaturizer):
         gtone_spectrogram = tf.tensordot(S, gtone, 1)
 
         return self.power_to_db(gtone_spectrogram)
+    
+    def speaker_embedding(
+        path:bytes,
+        features:tf.Tensor,  # shape is [T,dmodel,1]
+    )-> tf.Tensor:
+        speaker_id = path.decode("utf-8").split("/")[3]
+        embed = np.load(f"{self.speaker_embedding_dir}/{speaker_id}.npy")
+        embed = tf.reshape(embed,[1,-1,1])
+        embed = tf.tile(embed,tf.constant([features.shape[0],1,1]))
+        features = tf.concat([features,embed],axis=1)
+        return features
+
+    def tf_speaker_embedding(path:tf.Tensor,features:tf.Tensor):
+        return tf.numpy_function(speaker_embedding,inp=[path,features],Tout=tf.float32)

@@ -11,10 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import collections
+import tensorflow as tf
 
-from tensorflow_asr.models.encoders.conformer import L2, ConformerEncoder
+from tensorflow_asr.models.encoders.conformer import L2, ConformerEncoder,ConformerDecoder
 from tensorflow_asr.models.transducer.base_transducer import Transducer
+from tensorflow_asr.utils import data_util, layer_util, math_util, shape_util
 
+
+Hypothesis = collections.namedtuple("Hypothesis", ("prediction"))
 
 class Conformer(Transducer):
     def __init__(
@@ -70,6 +75,14 @@ class Conformer(Transducer):
                 trainable=encoder_trainable,
                 name=f"{name}_encoder",
             ),
+            decoder=ConformerDecoder(
+                vocabulary_size=vocabulary_size,
+                filters=1,
+                kernel_regularizer=kernel_regularizer,
+                kernel_size=encoder_kernel_size,
+                bias_regularizer=bias_regularizer,
+                name=f"{name}_decoder",
+            ),
             vocabulary_size=vocabulary_size,
             embed_dim=prediction_embed_dim,
             embed_dropout=prediction_embed_dropout,
@@ -92,4 +105,112 @@ class Conformer(Transducer):
             **kwargs,
         )
         self.dmodel = encoder_dmodel
-        self.time_reduction_factor = self.encoder.conv_subsampling.time_reduction_factor
+        # self.time_reduction_factor = self.encoder.conv_subsampling.time_reduction_factor 
+        self.time_reduction_factor = 1
+        
+    def decoder_inference(
+            self,
+            encoded: tf.Tensor,
+            tflite: bool = False,
+        ):
+        encoded = tf.reshape(encoded, [1, 1, -1]) 
+        decoded = self.decoder(encoded)
+        decoded = tf.reshape(decoded, shape=[-1])
+        return decoded
+
+    def _perform_greedy(
+            self,
+            encoded: tf.Tensor,
+            encoded_length: tf.Tensor,
+            parallel_iterations: int = 10,
+            swap_memory: bool = False,
+            tflite: bool = False,
+        ):
+            with tf.name_scope(f"{self.name}_greedy"):
+                time = tf.constant(0, dtype=tf.int32)
+                total = encoded_length
+
+                hypothesis = Hypothesis(
+                    prediction=tf.TensorArray(
+                    dtype=tf.int32,
+                    size=total,
+                    dynamic_size=False,
+                    clear_after_read=False,
+                    element_shape=tf.TensorShape([]),
+                    ),
+                )
+                def condition(_time,_):
+                    return tf.less(_time, total)
+
+                def body(_time,_hypothesis):
+                    ytu = self.decoder_inference(
+                        # avoid using [index] in tflite
+                        encoded=tf.gather_nd(encoded, tf.reshape(_time, shape=[1])),
+                        tflite=tflite,
+                    )
+                    _predict = tf.argmax(ytu, axis=-1, output_type=tf.int32)  # => argmax []
+
+                    # something is wrong with tflite that drop support for tf.cond
+                    # def equal_blank_fn(): return _hypothesis.index, _hypothesis.states
+                    # def non_equal_blank_fn(): return _predict, _states  # update if the new prediction is a non-blank
+                    # _index, _states = tf.cond(tf.equal(_predict, blank), equal_blank_fn, non_equal_blank_fn)
+
+                    _prediction = _hypothesis.prediction.write(_time, _predict)
+                    _hypothesis = Hypothesis(prediction=_prediction)
+
+                    return _time + 1,_hypothesis
+
+                time, hypothesis = tf.while_loop(
+                    condition,
+                    body,
+                    loop_vars=[time, hypothesis],
+                    parallel_iterations=parallel_iterations,
+                    swap_memory=swap_memory,
+                )
+
+                return Hypothesis(
+                    prediction=hypothesis.prediction.stack(),
+                )
+
+    def _perform_greedy_batch(
+            self,
+            encoded: tf.Tensor,
+            encoded_length: tf.Tensor,
+            parallel_iterations: int = 10,
+            swap_memory: bool = False,
+        ):
+            with tf.name_scope(f"{self.name}_perform_greedy_batch"):
+                total_batch = tf.shape(encoded)[0]
+                batch = tf.constant(0, dtype=tf.int32)
+
+                decoded = tf.TensorArray(
+                    dtype=tf.int32,
+                    size=total_batch,
+                    dynamic_size=False,
+                    clear_after_read=False,
+                    element_shape=tf.TensorShape([None]),
+                )
+
+                def condition(batch, _):
+                    return tf.less(batch, total_batch)
+
+                def body(batch, decoded):
+                    hypothesis = self._perform_greedy(
+                        encoded=encoded[batch],
+                        encoded_length=encoded_length[batch],
+                        parallel_iterations=parallel_iterations,
+                        swap_memory=swap_memory,
+                    )
+                    decoded = decoded.write(batch, hypothesis.prediction)
+                    return batch + 1, decoded
+
+                batch, decoded = tf.while_loop(
+                    condition,
+                    body,
+                    loop_vars=[batch, decoded],
+                    parallel_iterations=parallel_iterations,
+                    swap_memory=True,
+                )
+
+                decoded = math_util.pad_prediction_tfarray(decoded, blank=self.text_featurizer.blank)
+                return self.text_featurizer.iextract(decoded.stack())

@@ -15,6 +15,8 @@
 import os
 import fire
 import math
+import sys 
+sys.path.append("/content/TensorFlowASR/")
 from tensorflow_asr.utils import env_util
 
 logger = env_util.setup_environment()
@@ -33,7 +35,7 @@ def main(
     config: str = DEFAULT_YAML,
     tfrecords: bool = False,
     sentence_piece: bool = False,
-    subwords: bool = True,
+    subwords: bool = False,
     bs: int = None,
     spx: int = 1,
     metadata: str = None,
@@ -74,26 +76,26 @@ def main(
         batch_size=bs,
     )
 
-    with strategy.scope():
-        conformer = Conformer(**config.model_config, vocabulary_size=text_featurizer.num_classes)
-        conformer.make(speech_featurizer.shape, prediction_shape=text_featurizer.prepand_shape, batch_size=global_batch_size)
-        if pretrained:
-            conformer.load_weights(pretrained, by_name=True, skip_mismatch=True)
-        conformer.summary(line_length=100)
-        optimizer = tf.keras.optimizers.Adam(
-            TransformerSchedule(
-                d_model=conformer.dmodel,
-                warmup_steps=config.learning_config.optimizer_config.pop("warmup_steps", 10000),
-                max_lr=(0.05 / math.sqrt(conformer.dmodel)),
-            ),
-            **config.learning_config.optimizer_config
-        )
-        conformer.compile(
-            optimizer=optimizer,
-            experimental_steps_per_execution=spx,
-            global_batch_size=global_batch_size,
-            blank=text_featurizer.blank,
-        )
+    # with strategy.scope():
+    conformer = Conformer(**config.model_config, vocabulary_size=text_featurizer.num_classes)
+    conformer.make(speech_featurizer.shape, prediction_shape=text_featurizer.prepand_shape, batch_size=global_batch_size)
+    if pretrained:
+        conformer.load_weights(pretrained, by_name=True, skip_mismatch=True)
+    conformer.summary(line_length=100)
+    optimizer = tf.keras.optimizers.Adam(
+        TransformerSchedule(
+            d_model=conformer.dmodel,
+            warmup_steps=config.learning_config.optimizer_config.pop("warmup_steps", 10000),
+            max_lr=(0.05 / math.sqrt(conformer.dmodel)),
+        ),
+        **config.learning_config.optimizer_config
+    )
+    conformer.compile(
+        optimizer=optimizer,
+        experimental_steps_per_execution=spx,
+        global_batch_size=global_batch_size,
+        blank=text_featurizer.blank,
+    )
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(**config.learning_config.running_config.checkpoint),

@@ -172,10 +172,11 @@ class CharFeaturizer(TextFeaturizer):
         index = 1 if self.blank == 0 else 0
         for line in lines:
             line = self.preprocess_text(line)
+            line = line.strip()
             if line.startswith("#") or not line:
                 continue
-            self.tokens2indices[line[0]] = index
-            self.tokens.append(line[0])
+            self.tokens2indices[line] = index
+            self.tokens.append(line)
             index += 1
         if self.blank is None:
             self.blank = len(self.tokens)  # blank not at zero
@@ -198,7 +199,8 @@ class CharFeaturizer(TextFeaturizer):
             sequence of ints in tf.Tensor
         """
         text = self.preprocess_text(text)
-        text = list(text.strip())  # remove trailing space
+        text = text.strip()  # remove trailing space
+        text = text.split()
         indices = [self.tokens2indices[token] for token in text]
         return tf.convert_to_tensor(indices, dtype=tf.int32)
 
@@ -217,7 +219,7 @@ class CharFeaturizer(TextFeaturizer):
         indices = self.normalize_indices(indices)
         tokens = tf.gather_nd(self.tokens, tf.expand_dims(indices, axis=-1))
         with tf.device("/CPU:0"):  # string data is not supported on GPU
-            tokens = tf.strings.reduce_join(tokens, axis=-1)
+            tokens = tf.strings.reduce_join(tokens,separator=" " ,axis=-1)
         return tokens
 
     @tf.function(input_signature=[tf.TensorSpec([None], dtype=tf.int32)])

@@ -105,7 +105,11 @@ class BaseModel(tf.keras.Model):
         inputs, y_true = batch
         with tf.GradientTape() as tape:
             y_pred = self(inputs, training=True)
-            loss = self.loss(y_true, y_pred)
+            labels = y_true["labels"]
+            logits = y_pred["logits"]
+            labels = tf.one_hot(labels, depth=self.predict_net.embed.vocab_size)
+            # loss = tf.reduce_sum(self.loss(labels, logits))* (1. / self.global_batch_size)
+            loss = self.loss(labels,logits)
             if self.use_loss_scale:
                 scaled_loss = self.optimizer.get_scaled_loss(loss)
         if self.use_loss_scale:
@@ -128,7 +132,11 @@ class BaseModel(tf.keras.Model):
         """
         inputs, y_true = batch
         y_pred = self(inputs, training=False)
-        loss = self.loss(y_true, y_pred)
+        labels = y_true["labels"]
+        logits = y_pred["logits"]
+        labels = tf.one_hot(labels, depth=self.predict_net.embed.vocab_size)
+        # loss = tf.reduce_sum(self.loss(labels, logits))* (1. / self.global_batch_size)
+        loss = self.loss(labels,logits)
         self._tfasr_metrics["loss"].update_state(loss)
         return {m.name: m.result() for m in self.metrics}
 

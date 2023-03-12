@@ -17,7 +17,9 @@ import os
 from typing import Union
 import numpy as np
 import tensorflow as tf
+import pickle
 import tqdm
+import pandas as pd
 
 from tensorflow_asr.augmentations.augmentation import Augmentation
 from tensorflow_asr.datasets.base_dataset import AUTOTUNE, BUFFER_SIZE, TFRECORD_SHARDS, BaseDataset
@@ -26,6 +28,8 @@ from tensorflow_asr.featurizers.speech_featurizers import (
     load_and_convert_to_wav,
     read_raw_audio,
     tf_read_raw_audio,
+    speaker_embedding,
+    tf_speaker_embedding,
 )
 from tensorflow_asr.featurizers.text_featurizers import TextFeaturizer
 from tensorflow_asr.utils import data_util, feature_util, file_util, math_util
@@ -140,14 +144,17 @@ class ASRDataset(BaseDataset):
         for i, line in enumerate(self.entries):
             self.entries[i][-1] = " ".join([str(x) for x in self.text_featurizer.extract(line[-1]).numpy()])
         self.entries = np.array(self.entries)
+
         if self.shuffle:
             np.random.shuffle(self.entries)  # Mix transcripts.tsv
         self.total_steps = len(self.entries)
-
     # -------------------------------- LOAD AND PREPROCESS -------------------------------------
 
     def generator(self):
-        for path, _, indices in self.entries:
+        # for path, _, indices in self.entries:
+        for index, _ in self.entries.iterrows():
+            path = self.entries.at[index,"PATH"]
+            indices = self.entries.at[index,"TRANSCRIPT"]
             audio = load_and_convert_to_wav(path).numpy()
             yield bytes(path, "utf-8"), audio, bytes(indices, "utf-8")
 
@@ -160,6 +167,7 @@ class ASRDataset(BaseDataset):
                 features = self.speech_featurizer.extract(signal.numpy())
                 features = self.augmentations.feature_augment(features)
                 features = tf.convert_to_tensor(features, tf.float32)
+                # features = speaker_embedding(_path,features)
                 input_length = tf.cast(tf.shape(features)[0], tf.int32)
 
                 label = tf.strings.to_number(tf.strings.split(_indices), out_type=tf.int32)
@@ -180,10 +188,15 @@ class ASRDataset(BaseDataset):
             signal = self.augmentations.signal_augment(signal)
             features = self.speech_featurizer.tf_extract(signal)
             features = self.augmentations.feature_augment(features)
+            if self.speech_featurizer.speaker_embedded:
+                featrues = tf_speaker_embedding(path,features)
             input_length = tf.cast(tf.shape(features)[0], tf.int32)
 
             label = tf.strings.to_number(tf.strings.split(indices), out_type=tf.int32)
             label_length = tf.cast(tf.shape(label)[0], tf.int32)
+
+            if label_length<input_length:
+                label = tf.concat([label,tf.constant([70])],axis=0)
 
             prediction = self.text_featurizer.prepand_blank(label)
             prediction_length = tf.cast(tf.shape(prediction)[0], tf.int32)
