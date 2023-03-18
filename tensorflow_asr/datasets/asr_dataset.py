@@ -28,9 +28,8 @@ from tensorflow_asr.featurizers.speech_featurizers import (
     load_and_convert_to_wav,
     read_raw_audio,
     tf_read_raw_audio,
-    speaker_embedding,
-    tf_speaker_embedding,
 )
+from tensorflow_asr.featurizers.speech_featurizers import TFSpeechFeaturizer
 from tensorflow_asr.featurizers.text_featurizers import TextFeaturizer
 from tensorflow_asr.utils import data_util, feature_util, file_util, math_util
 
@@ -189,7 +188,7 @@ class ASRDataset(BaseDataset):
             features = self.speech_featurizer.tf_extract(signal)
             features = self.augmentations.feature_augment(features)
             if self.speech_featurizer.speaker_embedded:
-                featrues = tf_speaker_embedding(path,features)
+                features = self.speech_featurizer.tf_speaker_embedding(path,features)
             input_length = tf.cast(tf.shape(features)[0], tf.int32)
 
             label = tf.strings.to_number(tf.strings.split(indices), out_type=tf.int32)

@@ -24,7 +24,7 @@ speech_config:
   normalize_per_frame: False
   speaker_embedded: True
   speaker_embedding_length : 256
-  speaker_embedding_dir : /content/speaker_embedding
+  speaker_embedding_dir : /content/speaker_embedding_v2
 
 decoder_config:
   vocabulary: /content/TensorFlowASR/vocabularies/librispeech/phoneme.characters

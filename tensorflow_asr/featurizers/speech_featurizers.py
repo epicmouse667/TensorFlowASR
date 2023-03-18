@@ -645,6 +645,7 @@ class TFSpeechFeaturizer(SpeechFeaturizer):
         return self.power_to_db(gtone_spectrogram)
     
     def speaker_embedding(
+        self,
         path:bytes,
         features:tf.Tensor,  # shape is [T,dmodel,1]
     )-> tf.Tensor:
@@ -655,5 +656,5 @@ class TFSpeechFeaturizer(SpeechFeaturizer):
         features = tf.concat([features,embed],axis=1)
         return features
 
-    def tf_speaker_embedding(path:tf.Tensor,features:tf.Tensor):
+    def tf_speaker_embedding(self,path:tf.Tensor,features:tf.Tensor):
         return tf.numpy_function(speaker_embedding,inp=[path,features],Tout=tf.float32)
