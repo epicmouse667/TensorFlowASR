@@ -657,4 +657,4 @@ class TFSpeechFeaturizer(SpeechFeaturizer):
         return features
 
     def tf_speaker_embedding(self,path:tf.Tensor,features:tf.Tensor):
-        return tf.numpy_function(speaker_embedding,inp=[path,features],Tout=tf.float32)
+        return tf.numpy_function(self.speaker_embedding,inp=[path,features],Tout=tf.float32)
