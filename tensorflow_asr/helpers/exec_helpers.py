@@ -1,12 +1,15 @@
 from tqdm import tqdm
 import tensorflow as tf
 import numpy as np
+import os
 from tensorflow_asr.datasets.asr_dataset import ASRSliceDataset
 
 from tensorflow_asr.models.base_model import BaseModel
 from tensorflow_asr.utils import file_util, app_util
 from tensorflow_asr.configs.config import Config
-DEFAULT_YAML = os.path.join(os.path.abspath(os.path.dirname(__file__)), "config.yml")
+exec_dir = os.path.dirname(os.path.abspath(__file__))
+config_dir = os.path.join(exec_dir, '..', '..', 'examples', 'conformer')
+DEFAULT_YAML = os.path.join(config_dir, 'config.yml')
 
 logger = tf.get_logger()
 config = Config(DEFAULT_YAML)
@@ -17,7 +20,7 @@ def run_testing(
     test_dataset: ASRSliceDataset,
     test_data_loader: tf.data.Dataset,
     output: str,
-    config:str:DEFAULT_YAML
+    config:str=DEFAULT_YAML
 ):
     with file_util.save_file(file_util.preprocess_paths(output)) as filepath:
         overwrite = True

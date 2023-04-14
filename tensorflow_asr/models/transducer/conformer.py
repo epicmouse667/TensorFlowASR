@@ -120,51 +120,51 @@ class Conformer(Transducer):
 
     def _ppg(
         self,
-        encoded:Tf.Tensor,
+        encoded:tf.Tensor,
         encoded_length:tf.Tensor,
         parallel_iterations:int=10,
-        swap_memory: bool = false,
-        tflite: bool = false,
+        swap_memory: bool = False,
+        tflite: bool = False,
     ):
-    with tf.name_scope(f"{self.name}_ppg"):
-                time = tf.constant(0, dtype=tf.int32)
-                total = encoded_length
+        with tf.name_scope(f"{self.name}_ppg"):
+            time = tf.constant(0, dtype=tf.int32)
+            total = encoded_length
 
-                hypothesis = Hypothesis(
-                    prediction=tf.TensorArray(
-                    dtype=tf.int32,
-                    size=total,
-                    dynamic_size=False,
-                    clear_after_read=False,
-                    element_shape=tf.TensorShape([]),
-                    ),
-                )
-                def condition(_time,_):
-                    return tf.less(_time, total)
+            hypothesis = Hypothesis(
+                prediction=tf.TensorArray(
+                dtype=tf.int32,
+                size=total,
+                dynamic_size=False,
+                clear_after_read=False,
+                element_shape=tf.TensorShape([self.text_featurizer.num_classes]),
+                ),
+            )
+            def condition(_time,_):
+                return tf.less(_time, total)
 
-                def body(_time,_hypothesis):
-                    ytu = self.decoder_inference(
-                        # avoid using [index] in tflite
-                        encoded=tf.gather_nd(encoded, tf.reshape(_time, shape=[1])),
-                        tflite=tflite,
-                    )
-
-                    _prediction = _hypothesis.prediction.write(_time,ytu,)
-                    _hypothesis = Hypothesis(prediction=_prediction)
-
-                    return _time + 1,_hypothesis
-
-                time, hypothesis = tf.while_loop(
-                    condition,
-                    body,
-                    loop_vars=[time, hypothesis],
-                    parallel_iterations=parallel_iterations,
-                    swap_memory=swap_memory,
+            def body(_time,_hypothesis):
+                ytu = self.decoder_inference(
+                    # avoid using [index] in tflite
+                    encoded=tf.gather_nd(encoded, tf.reshape(_time, shape=[1])),
+                    tflite=tflite,
                 )
 
-                return Hypothesis(
-                    prediction=tf.transpose(hypothesis.prediction.stack()),
-                )
+                _prediction = _hypothesis.prediction.write(_time,ytu,)
+                _hypothesis = Hypothesis(prediction=_prediction)
+
+                return _time + 1,_hypothesis
+
+            time, hypothesis = tf.while_loop(
+                condition,
+                body,
+                loop_vars=[time, hypothesis],
+                parallel_iterations=parallel_iterations,
+                swap_memory=swap_memory,
+            )
+
+            return Hypothesis(
+                prediction=tf.transpose(hypothesis.prediction.stack()),
+            )
 
     def _cal_ppg_batch(
             self,
@@ -182,7 +182,7 @@ class Conformer(Transducer):
                     size=total_batch,
                     dynamic_size=False,
                     clear_after_read=False,
-                    element_shape=tf.TensorShape([None]),
+                    element_shape=tf.TensorShape([self.text_featurizer.num_classes,None]),
                 )
 
                 def condition(batch, _):
@@ -206,7 +206,7 @@ class Conformer(Transducer):
                     swap_memory=True,
                 )
 
-                decoded = math_util.pad_prediction_tfarray(decoded, blank=tf.zeros(shape=(self.text_featurizer.num_classes,)))
+                decoded = math_util.pad_prediction_tfarray(decoded, blank=self.text_featurizer.blank)
                 return self.text_featurizer.iextract(decoded.stack())
 
     def _perform_greedy(

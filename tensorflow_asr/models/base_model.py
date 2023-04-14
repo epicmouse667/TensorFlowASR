@@ -160,7 +160,7 @@ class BaseModel(tf.keras.Model):
         """
         return ppg instead of greedy decoding
         """
-        _, y_true = batch
+        inputs,_ = batch
         ppg = self.recognize(inputs)
         return ppg
 
