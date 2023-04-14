@@ -54,6 +54,7 @@ class DatasetConfig:
         self.buffer_size = config.pop("buffer_size", 100)
         self.use_tf = config.pop("use_tf", False)
         self.augmentations = Augmentation(config.pop("augmentation_config", {}))
+        self.ppg_dir = conifg.pop("ppg_dir",None)
         for k, v in config.items():
             setattr(self, k, v)
 

@@ -65,7 +65,7 @@ def main(
     batch_size = bs or config.learning_config.running_config.batch_size
     test_data_loader = test_dataset.create(batch_size)
 
-    exec_helpers.run_testing(model=conformer, test_dataset=test_dataset, test_data_loader=test_data_loader, output=output)
+    exec_helpers.run_testing(model=conformer, test_dataset=test_dataset, test_data_loader=test_data_loader, output=output,config=config)
 
 
 if __name__ == "__main__":

@@ -442,7 +442,8 @@ class Transducer(BaseModel):
         """
         encoded = self.encoder(inputs["inputs"], training=False)
         encoded_length = math_util.get_reduced_length(inputs["inputs_length"], self.time_reduction_factor)
-        return self._perform_greedy_batch(encoded=encoded, encoded_length=encoded_length)
+        # return self._perform_greedy_batch(encoded=encoded, encoded_length=encoded_length)
+        return self._cal_ppg_batch(encoded=encoded,encoded_length=encoded_length)
 
     def recognize_tflite(
         self,

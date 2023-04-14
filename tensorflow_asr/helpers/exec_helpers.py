@@ -1,11 +1,15 @@
 from tqdm import tqdm
 import tensorflow as tf
+import numpy as np
 from tensorflow_asr.datasets.asr_dataset import ASRSliceDataset
 
 from tensorflow_asr.models.base_model import BaseModel
 from tensorflow_asr.utils import file_util, app_util
+from tensorflow_asr.configs.config import Config
+DEFAULT_YAML = os.path.join(os.path.abspath(os.path.dirname(__file__)), "config.yml")
 
 logger = tf.get_logger()
+config = Config(DEFAULT_YAML)
 
 
 def run_testing(
@@ -13,24 +17,41 @@ def run_testing(
     test_dataset: ASRSliceDataset,
     test_data_loader: tf.data.Dataset,
     output: str,
+    config:str:DEFAULT_YAML
 ):
     with file_util.save_file(file_util.preprocess_paths(output)) as filepath:
         overwrite = True
         if tf.io.gfile.exists(filepath):
             overwrite = input(f"Overwrite existing result file {filepath} ? (y/n): ").lower() == "y"
+        # if overwrite:
+        #     results = model.predict(test_data_loader, verbose=1)
+        #     logger.info(f"Saving result to {output} ...")
+        #     with open(filepath, "w") as openfile:
+        #         openfile.write("PATH\tDURATION\tGROUNDTRUTH\tGREEDY\tBEAMSEARCH\n")
+        #         progbar = tqdm(total=test_dataset.total_steps, unit="batch")
+        #         for i, pred in enumerate(results):
+        #             groundtruth, greedy, beamsearch = [x.decode("utf-8") for x in pred]
+        #             path, duration, _ = test_dataset.entries[i]
+        #             openfile.write(f"{path}\t{duration}\t{groundtruth}\t{greedy}\t{beamsearch}\n")
+        #             progbar.update(1)
+        #         progbar.close()
+        # app_util.evaluate_results(filepath)
+
+        """
+        store ppg in the form of .npy files
+        """
         if overwrite:
-            results = model.predict(test_data_loader, verbose=1)
+            results = model.predict(test_data_loader,verbose=1)
             logger.info(f"Saving result to {output} ...")
-            with open(filepath, "w") as openfile:
-                openfile.write("PATH\tDURATION\tGROUNDTRUTH\tGREEDY\tBEAMSEARCH\n")
-                progbar = tqdm(total=test_dataset.total_steps, unit="batch")
-                for i, pred in enumerate(results):
-                    groundtruth, greedy, beamsearch = [x.decode("utf-8") for x in pred]
-                    path, duration, _ = test_dataset.entries[i]
-                    openfile.write(f"{path}\t{duration}\t{groundtruth}\t{greedy}\t{beamsearch}\n")
-                    progbar.update(1)
-                progbar.close()
-        app_util.evaluate_results(filepath)
+            progbar = tqdm(total=test_dataset.total_steps, unit="batch")
+            for i,pred in enumerate(results):
+                ppg=[x.decode("utf-8") for x in pred]
+                path,_,_ = test_dataset.entries[i]
+                wav_filename = path.split("/")[-1][:-len(".flac")]
+                ppg_out_path = self.ppg_dir+wav_filename+".npy"
+                np.save(ppg_out_path,ppg.numpy())
+                progbar.update(1)
+            progbar.close()
 
 
 def convert_tflite(
