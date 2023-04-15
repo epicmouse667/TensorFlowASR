@@ -648,7 +648,7 @@ class TFSpeechFeaturizer(SpeechFeaturizer):
         path:bytes,
         features:tf.Tensor,  # shape is [T,dmodel,1]
     )-> tf.Tensor:
-        speaker_id = path.decode("utf-8").split("/")[3]
+        speaker_id = path.decode("utf-8").split("/")[-3]
         embed = np.load(f"{self.speaker_embedding_dir}/{speaker_id}.npy")
         embed = tf.reshape(embed,[1,-1,1])
         embed = tf.tile(embed,tf.constant([features.shape[0],1,1]))
