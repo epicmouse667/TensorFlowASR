@@ -14,11 +14,6 @@ DEFAULT_YAML = os.path.join(config_dir, 'config.yml')
 
 logger = tf.get_logger()
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> def550e43819ed30f6f82c73e75cc7f5dfb4e3ac
 def run_testing(
     model: BaseModel,
     test_dataset: ASRSliceDataset,
