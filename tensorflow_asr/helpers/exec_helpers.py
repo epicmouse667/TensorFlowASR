@@ -56,12 +56,8 @@ def run_testing(
                 ppg=[x.decode("utf-8") for x in pred]
                 path,_,_ = test_dataset.entries[i]
                 wav_filename = path.split("/")[-1][:-len(".flac")]
-<<<<<<< HEAD
                 Path( config.learning_config.test_dataset_config.ppg_dir).mkdir( parents=True, exist_ok=True )
                 ppg_out_path = config.learning_config.test_dataset_config.ppg_dir+wav_filename+".npy"
-=======
-                ppg_out_path = config.learning_config.test_dataset_config.ppg_dir+wav_filename+".npy"
->>>>>>> def550e43819ed30f6f82c73e75cc7f5dfb4e3ac
                 np.save(ppg_out_path,ppg.numpy())
                 progbar.update(1)
             progbar.close()
