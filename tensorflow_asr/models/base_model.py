@@ -161,7 +161,9 @@ class BaseModel(tf.keras.Model):
         return ppg instead of greedy decoding
         """
         inputs,_ = batch
-        ppg = self.recognize(inputs)
+        y_pred = self(inputs, training=True)
+        ppg = y_pred["logits"]
+        # ppg = self.recognize(inputs)
         return ppg
 
 

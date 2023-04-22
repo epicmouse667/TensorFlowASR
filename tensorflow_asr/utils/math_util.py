@@ -156,3 +156,30 @@ def pad_prediction_tfarray(
 
         index, tfarray = tf.while_loop(condition, body, loop_vars=[index, tfarray], swap_memory=False)
         return tfarray
+
+
+def pad_prediction_tfarray_4d2(
+    tfarray: tf.TensorArray,
+    blank: int or tf.Tensor,
+) -> tf.TensorArray:
+    with tf.name_scope("pad_prediction_tfarray"):
+        index = tf.constant(0, dtype=tf.int32)
+        total = tfarray.size()
+        max_length = find_max_length_prediction_tfarray(tfarray) + 1
+
+        def condition(index, _):
+            return tf.less(index, total)
+
+        def body(index, tfarray):
+            prediction = tfarray.read(index)
+            prediction = tf.pad(
+                prediction,
+                paddings=[[0, max_length - tf.shape(prediction)[0]],[0,0]],
+                mode="CONSTANT",
+                constant_values=blank,
+            )
+            tfarray = tfarray.write(index, prediction)
+            return index + 1, tfarray
+
+        index, tfarray = tf.while_loop(condition, body, loop_vars=[index, tfarray], swap_memory=False)
+        return tfarray

@@ -132,7 +132,7 @@ class Conformer(Transducer):
 
             hypothesis = Hypothesis(
                 prediction=tf.TensorArray(
-                dtype=tf.int32,
+                dtype=tf.float32,
                 size=total,
                 dynamic_size=False,
                 clear_after_read=False,
@@ -178,7 +178,7 @@ class Conformer(Transducer):
                 batch = tf.constant(0, dtype=tf.int32)
 
                 decoded = tf.TensorArray(
-                    dtype=tf.int32,
+                    dtype=tf.float32,
                     size=total_batch,
                     dynamic_size=False,
                     clear_after_read=False,
