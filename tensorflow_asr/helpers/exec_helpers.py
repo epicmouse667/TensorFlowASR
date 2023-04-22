@@ -12,7 +12,7 @@ config_dir = os.path.join(exec_dir, '..', '..', 'examples', 'conformer')
 DEFAULT_YAML = os.path.join(config_dir, 'config.yml')
 
 logger = tf.get_logger()
-config = Config(DEFAULT_YAML)
+
 
 
 def run_testing(
@@ -22,6 +22,7 @@ def run_testing(
     output: str,
     config:str=DEFAULT_YAML
 ):
+    config = Config(config)
     with file_util.save_file(file_util.preprocess_paths(output)) as filepath:
         overwrite = True
         if tf.io.gfile.exists(filepath):
@@ -51,7 +52,7 @@ def run_testing(
                 ppg=[x.decode("utf-8") for x in pred]
                 path,_,_ = test_dataset.entries[i]
                 wav_filename = path.split("/")[-1][:-len(".flac")]
-                ppg_out_path = self.ppg_dir+wav_filename+".npy"
+                ppg_out_path = config.learning_config.test_dataset_config.ppg_dir+wav_filename+".npy"
                 np.save(ppg_out_path,ppg.numpy())
                 progbar.update(1)
             progbar.close()

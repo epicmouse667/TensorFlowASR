@@ -163,7 +163,7 @@ class Conformer(Transducer):
             )
 
             return Hypothesis(
-                prediction=tf.transpose(hypothesis.prediction.stack()),
+                prediction=hypothesis.prediction.stack(),
             )
 
     def _cal_ppg_batch(
@@ -207,7 +207,7 @@ class Conformer(Transducer):
                 )
 
                 decoded = math_util.pad_prediction_tfarray(decoded, blank=self.text_featurizer.blank)
-                return self.text_featurizer.iextract(decoded.stack())
+                return decoded.stack()
 
     def _perform_greedy(
             self,
