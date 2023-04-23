@@ -21,7 +21,6 @@ def run_testing(
     output: str,
     config:str=DEFAULT_YAML
 ):
-    config = Config(config)
     with file_util.save_file(file_util.preprocess_paths(output)) as filepath:
         overwrite = True
         if tf.io.gfile.exists(filepath):
@@ -44,17 +43,17 @@ def run_testing(
         store ppg in the form of .npy files
         """
         if overwrite:
-            results = model.predict(test_data_loader,verbose=1)
-            logger.info(f"Saving result to {output} ...")
+            logger.info(f"Saving result to {config.learning_config.test_dataset_config.ppg_dir} ...")
             progbar = tqdm(total=test_dataset.total_steps, unit="batch")
-            for i,pred in enumerate(results):
-                ppg=[x.decode("utf-8") for x in pred]
-                path,_,_ = test_dataset.entries[i]
-                wav_filename = path.split("/")[-1][:-len(".flac")]
-                Path( config.learning_config.test_dataset_config.ppg_dir).mkdir( parents=True, exist_ok=True )
-                ppg_out_path = config.learning_config.test_dataset_config.ppg_dir+wav_filename+".npy"
-                np.save(ppg_out_path,ppg.numpy())
-                progbar.update(1)
+            for i,batch in enumerate(test_data_loader): ## enable us to save the ppg matrix batch by batch
+                results = model.predict(batch, verbose=1)
+                for j,ppg in enumerate(results):
+                    path,_,_ = test_dataset.entries[i*config.learning_config.running_config.batch_size+j]
+                    wav_filename = path.split("/")[-1][:-len(".flac")]
+                    Path( config.learning_config.test_dataset_config.ppg_dir).mkdir( parents=True, exist_ok=True )
+                    ppg_out_path = config.learning_config.test_dataset_config.ppg_dir+wav_filename+".npy"
+                    np.save(ppg_out_path,ppg)
+                    progbar.update(1)
             progbar.close()
 
 

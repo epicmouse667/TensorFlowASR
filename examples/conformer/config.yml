@@ -107,8 +107,7 @@ learning_config:
     buffer_size: 100
     drop_remainder: True
     stage: test
-    ppg_dir:
-      - /content/drive/MyDrive/conformer/ppg
+    ppg_dir:/content/ppg/train/
 
   optimizer_config:
     warmup_steps: 40000

@@ -160,7 +160,7 @@ class BaseModel(tf.keras.Model):
         """
         return ppg instead of greedy decoding
         """
-        inputs,_ = batch
+        inputs,_ = batch[0] ## please refer to my note to figure out why we use "[0]" here.
         y_pred = self(inputs, training=True)
         ppg = y_pred["logits"]
         # ppg = self.recognize(inputs)
