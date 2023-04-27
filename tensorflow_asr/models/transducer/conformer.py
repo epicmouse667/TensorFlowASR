@@ -182,7 +182,7 @@ class Conformer(Transducer):
                     size=total_batch,
                     dynamic_size=False,
                     clear_after_read=False,
-                    element_shape=tf.TensorShape([self.text_featurizer.num_classes,None]),
+                    element_shape=tf.TensorShape([None,self.text_featurizer.num_classes]),
                 )
 
                 def condition(batch, _):
