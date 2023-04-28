@@ -13,6 +13,7 @@
 # limitations under the License.
 import collections
 import tensorflow as tf
+import numpy as np
 
 from tensorflow_asr.models.encoders.conformer import L2, ConformerEncoder,ConformerDecoder
 from tensorflow_asr.models.transducer.base_transducer import Transducer
@@ -118,6 +119,35 @@ class Conformer(Transducer):
         decoded = tf.reshape(decoded, shape=[-1])
         return decoded
 
+     @tf.function
+    def recognize(
+        self,
+        inputs: Dict[str, tf.Tensor],
+    ):
+        """
+        RNN Transducer Greedy decoding
+        Args:
+            features (tf.Tensor): a batch of extracted features
+            input_length (tf.Tensor): a batch of extracted features length
+
+        Returns:
+            tf.Tensor: a batch of decoded transcripts
+
+        Note that: 
+        We will have padding on both sides of the input vector. 
+        The padding will be the corresponding log_mel vector of silence.
+        """
+        config = Config(config)
+        head_redundancy = config.infer_config.head_redundancy
+        tail_redundancy = config.infer_config.tail_redundancy
+        silence_audio_path = config.infer_config.silence_audio_path
+        silence = tf.conver_to_tensor(np.load(silence_audio_path))
+        inputs["inputs"] = tf.concat([silence[:head_redundancy],inputs["inputs"],silence[:tail_redundancy]],axis=1)
+        encoded = self.encoder(inputs["inputs"], training=False)
+        encoded_length = math_util.get_reduced_length(inputs["inputs_length"]+head_redundancy+tail_redundancy, self.time_reduction_factor)
+        return self._perform_greedy_batch(encoded=encoded, encoded_length=encoded_length)
+
+
     def _perform_greedy(
             self,
             encoded: tf.Tensor,
@@ -171,7 +201,20 @@ class Conformer(Transducer):
                 return Hypothesis(
                     prediction=hypothesis.prediction.stack(),
                 )
+  
+    def streaming_inference():
+    """
+    Note:
+    This function will do straming inference. The function will have a sliding window
+    (win_len = head_redundancy+effective_len+tail_redundancy), and every time the window move forward, it will take a segment of
+     length [effective_len] frames and feed it to _perform_greedy() which will output the decoded transcript. Then the window 
+     will hop forward [hop_len] frames. Once the window finished sliding, this function will collect all the 
+     transciprts(with length of [effective_len]) and concatenate all of thems to form a complete transcript.
+    """
+        pass
 
+    def _perform_straming_inference_in_batch():
+        pass
     def _perform_greedy_batch(
             self,
             encoded: tf.Tensor,

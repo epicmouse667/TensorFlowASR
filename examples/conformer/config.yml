@@ -130,3 +130,10 @@ learning_config:
       write_images: True
       update_freq: epoch
       profile_batch: 2
+
+  infer_config:
+  #unit : frame
+    head_redundancy: 175
+    tail_redundancy: 5
+    effective_len: 20
+    silence_auido_path: /content/silence_audio/
