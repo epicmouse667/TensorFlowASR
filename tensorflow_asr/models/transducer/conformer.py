@@ -140,12 +140,17 @@ class Conformer(Transducer):
         config = Config(config)
         head_redundancy = config.infer_config.head_redundancy
         tail_redundancy = config.infer_config.tail_redundancy
+        effective_len = config.infer_config.effective_len
         silence_audio_path = config.infer_config.silence_audio_path
+
         silence = tf.conver_to_tensor(np.load(silence_audio_path))
-        inputs["inputs"] = tf.concat([silence[:head_redundancy],inputs["inputs"],silence[:tail_redundancy]],axis=1)
+        silence = self.encoder(silence,traing=Flase)
         encoded = self.encoder(inputs["inputs"], training=False)
-        encoded_length = math_util.get_reduced_length(inputs["inputs_length"]+head_redundancy+tail_redundancy, self.time_reduction_factor)
-        return self._perform_greedy_batch(encoded=encoded, encoded_length=encoded_length)
+        encoded_length = math_util.get_reduced_length(inputs["inputs_length"], self.time_reduction_factor)
+        return self._perform_streaming_in_batch(
+            encoded=encoded, encoded_length=encoded_length,
+            head=head_redundancy,tail=tail_redundancy,
+            silence=silence,effective_len=effective_len)
 
 
     def _perform_greedy(
@@ -202,7 +207,18 @@ class Conformer(Transducer):
                     prediction=hypothesis.prediction.stack(),
                 )
   
-    def streaming_inference():
+    def _streaming_inference(
+        self,
+        encoded,
+        encoded_length,
+        head,
+        tail,
+        silence,
+        effective_len,
+        parallel_iterations:int = 10,
+        swap_memory: bool = False,
+        tflite:bool = False
+    ):
     """
     Note:
     This function will do straming inference. The function will have a sliding window
@@ -211,10 +227,106 @@ class Conformer(Transducer):
      will hop forward [hop_len] frames. Once the window finished sliding, this function will collect all the 
      transciprts(with length of [effective_len]) and concatenate all of thems to form a complete transcript.
     """
-        pass
+        with tf.name_scope(f"{self.name}_streaming_infer"):
+            hypothesis = Hypothesis(
+                    prediction=tf.TensorArray(
+                    dtype=tf.int32,
+                    size=0,
+                    dynamic_size=True,
+                    clear_after_read=False,
+                    element_shape=tf.TensorShape([effective_len]),
+                    ),
+                )
 
-    def _perform_straming_inference_in_batch():
-        pass
+                return Hypothesis(
+                    prediction=hypothesis.prediction.stack(),
+                )
+            win_len = head+effective_len+tail 
+            '''
+             window made up by three parts, which is head,effective_len,tail.
+             we feed the whole window to perform_greedy,but we only care about the effective_len in the middle.
+            '''
+            encoded = tf.concat([silence[:head+1],encoded,silence[:tail+1]])
+
+            time = tf.constant(0, dtype=tf.int32)
+            def condition(_time):
+                tf.less(_time+effective_len+tail,encoded_length+win_len)
+            def body(_time,_hypothesis):
+                _infer = _perform_greedy(
+                    encoded=encoded[_time,_time+win_len],
+                    enccoded_length=tf.constant(win_len,dtype=tf.int32),
+                    parallel_iterations=parallel_iterations,
+                    swap_memory=swap_memory,
+                    tflite=tflite
+                )
+                if tail==0:
+                    _prediction = _hypothesis.prediction.write(_time, _infer[head:])
+                else:
+                    _prediction = _hypothesis.prediction.write(_time, _infer[head,-tail])
+                _hypothesis = Hypothesis(prediction=_prediction)
+                return _time+effective_len,_hypothesis
+            time, hypothesis = tf.while_loop(
+                    condition,
+                    body,
+                    loop_vars=[time, hypothesis],
+                    parallel_iterations=parallel_iterations,
+                    swap_memory=swap_memory,
+                )
+            return Hypothesis(
+                    prediction=hypothesis.prediction.concat(),
+                )
+
+    def _perform_straming_inference_in_batch(
+        self,
+        encoded,
+        encoded_length,
+        head,
+        tail,
+        silence,
+        parallel_iterations:int = 10,
+        swap_memory: bool = Flase,
+        tflite:bool = False
+        ):
+         with tf.name_scope(f"{self.name}_perform_streaming_inference_in_batch"):
+                total_batch = tf.shape(encoded)[0]
+                batch = tf.constant(0, dtype=tf.int32)
+
+                decoded = tf.TensorArray(
+                    dtype=tf.int32,
+                    size=total_batch,
+                    dynamic_size=False,
+                    clear_after_read=False,
+                    element_shape=tf.TensorShape([None]),
+                )
+
+                def condition(batch, _):
+                    return tf.less(batch, total_batch)
+
+                def body(batch, decoded):
+                    hypothesis = self._streaming_inference(
+                        encoded=encoded[batch],
+                        encoded_length=encoded_length[batch],
+                        head=head,
+                        tail=tail,
+                        silence=silence,
+                        effective_len=effective_len,
+                        parallel_iterations=parallel_iterations,
+                        swap_memory=swap_memory,
+                    )
+                    decoded = decoded.write(batch, hypothesis.prediction)
+                    return batch + 1, decoded
+
+                batch, decoded = tf.while_loop(
+                    condition,
+                    body,
+                    loop_vars=[batch, decoded],
+                    parallel_iterations=parallel_iterations,
+                    swap_memory=True,
+                )
+                decoded = math_util.pad_prediction_tfarray(decoded, blank=self.text_featurizer.blank)
+                return self.text_featurizer.iextract(decoded.stack())
+
+        
     def _perform_greedy_batch(
             self,
             encoded: tf.Tensor,
